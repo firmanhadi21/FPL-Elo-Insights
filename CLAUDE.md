@@ -4,85 +4,76 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **FPL-Elo-Insights**, a comprehensive Fantasy Premier League (FPL) dataset that combines official FPL API data with detailed match statistics and ClubElo team ratings. The project provides automated data collection, processing, and analysis for FPL research.
+**FPL-Elo-Insights** combines official FPL API data with detailed match statistics and ClubElo team ratings for Fantasy Premier League analysis. Data is sourced from a Supabase database and exported to organized CSV files.
 
 ## Key Commands
 
-### Data Export and Processing
 ```bash
-# Main data export script (requires SUPABASE_URL and SUPABASE_KEY environment variables)
+# Data export (requires SUPABASE_URL and SUPABASE_KEY env vars)
 python scripts/export_data.py
 
-# Split historical data by gameweek (for 2024-25 season)
-python scripts/split_by_gameweek.py
-
-# Fix CSV formatting issues
-python scripts/fixcsv.py
-
-# Split CSV data into structured format
-python scripts/split_csv_data.py
-```
-
-### Running Analysis Scripts
-```bash
-# Run any of the analysis scripts for gameweek predictions
-python gw4_enhanced_predictions.py
-python gw4_final_strategy.py
-python gw3_team_performance_analysis.py
-# (and other gw*.py files for specific gameweek analysis)
-```
-
-### Dependencies
-Install required Python packages:
-```bash
+# Install dependencies (requires Python 3.10+)
 pip install pandas numpy supabase python-dotenv
 ```
 
-## Architecture
+## Data Structure
 
-### Data Sources
-1. **Supabase Database**: Primary data source containing live FPL and match data
-2. **CSV Exports**: Local data files organized by season, gameweek, and tournament
-3. **ClubElo.com**: Team strength ratings integrated into match data
+Season data lives in `data/{season}/` (current: `2025-2026`):
 
-### Data Structure
-The project follows a hierarchical data organization under `data/{season}/`:
+- **Master files** (root): Latest aggregated `players.csv`, `teams.csv`, `playerstats.csv`, `gameweek_summaries.csv`
+- **By Gameweek** (`By Gameweek/GW{x}/`): Point-in-time snapshots with all data files
+- **By Tournament** (`By Tournament/{name}/GW{x}/`): Competition-specific data (Premier League, Champions League, EFL Cup, etc.)
 
-- **Master Files** (`data/2025-2026/`): Current season aggregated data
-  - `players.csv`, `teams.csv`, `playerstats.csv`, `gameweek_summaries.csv`
+## Critical Data Concepts
 
-- **By Gameweek** (`data/{season}/By Gameweek/GW{x}/`): Point-in-time snapshots
-  - Complete data state for each gameweek
-  - Includes `player_gameweek_stats.csv` (discrete weekly performance)
+### Stat Types (in playerstats)
 
-- **By Tournament** (`data/{season}/By Tournament/{tournament}/GW{x}/`): Competition-specific data
-  - Premier League, EFL Cup, Champions League, etc.
-  - Same file structure as gameweek folders
+- **Cumulative columns**: `total_points`, `minutes`, `goals_scored`, `assists`, `clean_sheets`, `bonus`, `bps`, `expected_goals`, `expected_assists`, etc. - these accumulate across the season
+- **Snapshot columns**: `now_cost`, `form`, `selected_by_percent`, `event_points`, `ep_next` - point-in-time values at each gameweek
+- **`player_gameweek_stats.csv`**: Auto-calculated discrete weekly performance (cumulative diffs between gameweeks)
 
-### Key Data Files
-- `matches.csv`: Comprehensive match data with team stats and Elo ratings
-- `playermatchstats.csv`: Individual player performance per match (includes CBIT metrics: Clearances, Blocks, Interceptions, Tackles)
-- `playerstats.csv`: Cumulative FPL player statistics
-- `player_gameweek_stats.csv`: Discrete weekly player performance (auto-calculated from cumulative data)
-- `fixtures.csv`: Upcoming matches (same structure as matches.csv)
+### Key ID Relationships
 
-### Automation
-- **GitHub Actions**: Automated data updates via `.github/workflows/`
-  - `update_data.yml`: Runs data export 3x daily (8:15 UTC, 17:00 UTC, 22:00 UTC)
-  - `splitdata.yml`: Manual workflow for splitting historical CSV data
-- **Data Processing**: `scripts/export_data.py` handles the complete pipeline from Supabase to organized CSV files
+- `playerstats.id` → `players.player_id`
+- `playermatchstats.player_id` → `players.player_id`
+- `playermatchstats.match_id` → `matches.match_id`
+- `matches.home_team` / `away_team` → `teams.id`
 
-### Analysis Scripts
-Root-level Python files (gw*.py) contain gameweek-specific analysis and prediction models:
-- Use historical performance data
-- Implement form calculations and player valuations
-- Generate transfer recommendations and team selections
-- Focus on high-scoring strategies (65+ points)
+### Tournament Slugs
 
-## Important Notes
+The `tournament` field in matches uses these slugs:
 
-- **Environment Variables**: SUPABASE_URL and SUPABASE_KEY must be set for data export
-- **Data Filtering**: Export script automatically excludes friendlies and GW0 (pre-season) matches
-- **Tournament Mapping**: Match IDs contain tournament slugs mapped to readable names in `TOURNAMENT_NAME_MAP`
-- **Discrete Stats**: `player_gameweek_stats.csv` provides week-over-week deltas, not cumulative totals
-- **Multi-Competition**: Data includes Premier League, cups, and European competitions linked to FPL player IDs
+- `prem` or `premier-league` → Premier League
+- `champions-league`, `europa-league`, `conference-league` → European competitions
+- `efl-cup` → EFL Cup
+
+## Automation
+
+GitHub Actions runs `scripts/export_data.py` 3x daily (8:15, 17:00, 22:00 UTC). The export:
+
+1. Fetches all tables from Supabase
+2. Filters out friendlies and GW0 (pre-season)
+3. Organizes data by gameweek and tournament
+4. Calculates discrete weekly stats from cumulative data
+
+## Analysis Scripts
+
+Root-level `gw*.py` files are gameweek-specific analysis scripts. Common patterns:
+
+```python
+# Load from By Gameweek folder
+BASE_PATH = Path("data/2025-2026/By Gameweek")
+stats = pd.read_csv(BASE_PATH / f"GW{gw}" / "playerstats.csv")
+
+# Merge player info with stats
+merged = stats.merge(players[['player_id', 'team_code', 'position']],
+                     left_on='id', right_on='player_id')
+
+# Filter Premier League fixtures
+prem_fixtures = fixtures[fixtures['tournament'] == 'prem']
+```
+
+## Environment Variables
+
+- `SUPABASE_URL`: Supabase project URL (required for export)
+- `SUPABASE_KEY`: Supabase API key (required for export)
