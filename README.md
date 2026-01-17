@@ -1,6 +1,7 @@
-# FPL-Elo-Insights: A Comprehensive FPL Dataset
+# FPL Core Insights: A Comprehensive FPL Dataset
 
-Welcome to **FPL-Elo-Insights**, a meticulously curated dataset designed to empower your Fantasy Premier League analysis beyond the surface.  
+Welcome to **FPL Core Insights**, the data engine powering [fplcore.com](https://fplcore.com).
+
 This project uniquely links official FPL player data with detailed match statistics and historical team Elo ratings, allowing for **unparalleled insights into player and team performance.**
 
 It combines three powerful data sources:
@@ -12,11 +13,20 @@ It combines three powerful data sources:
 
 ## 💬 Join the Community
 
-We’ve just launched the official **FPL-Elo-Insights Discord** — a place where data enthusiasts and football fans collide.
+Join the official **[FPL Core Discord](https://discord.gg/PgHqhv4v)** — where data enthusiasts and football fans collide.
 
-Whether you’re building FPL tools, exploring stats, or just talking football, you’ll find a home here.
+Whether you're using the [FPL Core platform](https://fplcore.com), building your own tools, or just talking football, you'll find a home here.
 
-**👉 [Join the Discord](https://discord.gg/RmySPr669k)**
+## 💬 Join the League
+
+We’ve created an official **FPL Core** league for anyone using this data.
+
+It’s a simple way to:
+- Compare performance
+- See who’s actually extracting value from the insights
+- Have a bit of competitive fun along the way
+
+👉 **[Join the FPL Core League](https://fantasy.premierleague.com/leagues/auto-join/jxhhge)**
 
 ## Data Updates
 
